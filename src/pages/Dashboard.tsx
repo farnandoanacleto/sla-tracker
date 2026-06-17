@@ -347,7 +347,9 @@ const Dashboard: React.FC = () => {
                 <XAxis dataKey="etapa" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: 8 }}
+                  itemStyle={{ color: '#334155' }}
+                  labelStyle={{ color: '#1E293B', fontWeight: 'bold' }}
                   formatter={(value, name) => [`${value} du`, name === 'mediaDias' ? 'Média real' : 'SLA previsto']}
                 />
                 <Legend
