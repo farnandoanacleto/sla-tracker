@@ -17,10 +17,10 @@ import {
 import { IVagaComSla, TSlaStatus, TEtapaVaga, TNivelVaga } from '@/types';
 
 const STATUS_COLORS: Record<TSlaStatus, string> = {
-  no_prazo: '#10B981',
+  no_prazo: '#22C55E',
   em_andamento: '#1A56A0',
-  atrasada: '#EF4444',
-  estourada: '#DC2626',
+  atrasada: '#F59E0B',
+  estourada: '#EF4444',
   pendente: '#9CA3AF',
 };
 
@@ -341,14 +341,20 @@ const Dashboard: React.FC = () => {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <SectionTitle icon={<Clock size={16} />} title="Média de Dias por Etapa vs SLA" />
           {loading ? <LoadingSpinner /> : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={dadosGargalos} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={dadosGargalos} margin={{ top: 0, right: 0, left: -20, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis dataKey="etapa" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip
                   contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }}
                   formatter={(value, name) => [`${value} du`, name === 'mediaDias' ? 'Média real' : 'SLA previsto']}
+                />
+                <Legend
+                  iconType="square"
+                  iconSize={10}
+                  wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                  formatter={(value) => value === 'mediaDias' ? 'Média Real (dias)' : 'Meta SLA (dias)'}
                 />
                 <Bar dataKey="mediaDias" fill="#1A56A0" radius={[4, 4, 0, 0]} name="mediaDias" />
                 <Bar dataKey="slaPrevisto" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="slaPrevisto" />
