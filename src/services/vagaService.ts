@@ -31,7 +31,11 @@ export const vagaService = {
       const { data, error } = await supabase
         .from('vagas')
         .select(`
-          *,
+          id, user_id, codigo_vaga, nome_vaga, tipo_vaga, nivel_vaga,
+          area_id, gestor_solicitante, consultoria_id, custo_processo,
+          data_solicitacao, data_aprovacao, data_abertura_consultoria,
+          data_envio_candidatos, data_entrevista, data_fechamento,
+          data_inicio_colaborador, created_at, updated_at,
           areas (nome, responsavel),
           consultorias (nome)
         `)
@@ -41,7 +45,7 @@ export const vagaService = {
       if (error) throw error;
 
       // 3. Processar SLAs e dados relacionais no javascript
-      const vagasFormatadas: IVagaComSla[] = (data as IVagaSupabase[] || []).map((item) => {
+      const vagasFormatadas: IVagaComSla[] = ((data as unknown as IVagaSupabase[]) || []).map((item) => {
         // Separar os objetos de join dos campos da vaga
         const { areas: areaData, consultorias: consultoriaData, ...vagaBase } = item;
         const vagaProcessada = processarSlaVaga(vagaBase, feriados);
@@ -122,7 +126,11 @@ export const vagaService = {
       const { data, error } = await supabase
         .from('vagas')
         .select(`
-          *,
+          id, user_id, codigo_vaga, nome_vaga, tipo_vaga, nivel_vaga,
+          area_id, gestor_solicitante, consultoria_id, custo_processo,
+          data_solicitacao, data_aprovacao, data_abertura_consultoria,
+          data_envio_candidatos, data_entrevista, data_fechamento,
+          data_inicio_colaborador, created_at, updated_at,
           areas (nome, responsavel),
           consultorias (nome)
         `)
@@ -132,7 +140,7 @@ export const vagaService = {
       if (error) throw error;
       if (!data) return null;
 
-      const { areas: areaData, consultorias: consultoriaData, ...vagaBase } = data as IVagaSupabase;
+      const { areas: areaData, consultorias: consultoriaData, ...vagaBase } = data as unknown as IVagaSupabase;
       const vagaProcessada = processarSlaVaga(vagaBase, feriados);
 
       return {
