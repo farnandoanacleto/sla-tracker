@@ -346,12 +346,20 @@ const Dashboard: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis dataKey="etapa" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: 8 }}
-                  itemStyle={{ color: '#334155' }}
-                  labelStyle={{ color: '#1E293B', fontWeight: 'bold' }}
-                  formatter={(value, name) => [`${value} du`, name === 'mediaDias' ? 'Média real' : 'SLA previsto']}
-                />
+                <Tooltip content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  return (
+                    <div style={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: 8, padding: '12px 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <p style={{ color: '#1E293B', fontWeight: 'bold', marginBottom: 8 }}>{label}</p>
+                      {payload.map((entry, index) => (
+                        <p key={index} style={{ color: '#334155', margin: '4px 0' }}>
+                          <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, backgroundColor: entry.color, marginRight: 8 }} />
+                          {entry.name === 'mediaDias' ? 'Média real' : 'SLA previsto'}: {entry.value} du
+                        </p>
+                      ))}
+                    </div>
+                  );
+                }} />
                 <Legend
                   iconType="square"
                   iconSize={10}
