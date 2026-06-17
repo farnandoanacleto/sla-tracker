@@ -353,8 +353,12 @@ const Dashboard: React.FC = () => {
                 <Legend
                   iconType="square"
                   iconSize={10}
-                  wrapperStyle={{ fontSize: 12, paddingTop: 8, color: '#64748B' }}
-                  formatter={(value) => value === 'mediaDias' ? 'Média Real (dias)' : 'Meta SLA (dias)'}
+                  wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                  formatter={(value) => (
+                    <span style={{ color: '#64748B' }}>
+                      {value === 'mediaDias' ? 'Média Real (dias)' : 'Meta SLA (dias)'}
+                    </span>
+                  )}
                 />
                 <Bar dataKey="mediaDias" fill="#1A56A0" radius={[4, 4, 0, 0]} name="mediaDias" />
                 <Bar dataKey="slaPrevisto" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="slaPrevisto" />
