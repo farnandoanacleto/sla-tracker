@@ -180,12 +180,10 @@ const Dashboard: React.FC = () => {
         );
         const pctSla = totalEt > 0 ? Math.round((noPrazo / totalEt) * 100) : 0;
 
-        const custoMedio =
-          vList.length > 0
-            ? Math.round(vList.reduce((s, v) => s + v.custo_processo, 0) / vList.length)
-            : 0;
+        const custoTotal = vList.reduce((s, v) => s + v.custo_processo, 0);
+        const custoMedio = vList.length > 0 ? custoTotal / vList.length : 0;
 
-        return { nome, qtdVagas: vList.length, mediaEnvio, pctSla, custoMedio };
+        return { nome, qtdVagas: vList.length, mediaEnvio, pctSla, custoMedio, custoTotal };
       })
       .sort((a, b) => b.qtdVagas - a.qtdVagas);
   }, [vagas]);
@@ -436,6 +434,7 @@ const Dashboard: React.FC = () => {
                     <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase">% SLA</th>
                     <th className="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Vagas</th>
                     <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Custo Médio</th>
+                    <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Custo Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -450,6 +449,7 @@ const Dashboard: React.FC = () => {
                       </td>
                       <td className="px-3 py-2.5 text-center text-gray-600">{c.qtdVagas}</td>
                       <td className="px-3 py-2.5 text-right text-gray-600 text-xs">{formatCurrency(c.custoMedio)}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-600 text-xs font-medium">{formatCurrency(c.custoTotal)}</td>
                     </tr>
                   ))}
                 </tbody>
