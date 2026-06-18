@@ -261,6 +261,38 @@ export const vagaService = {
    * @param vagaId ID da vaga a ser auditada
    * @returns Lista de registros de auditoria ordenados cronologicamente
    */
+  async verificarCodigosExistentes(codigos: string[], userId: string): Promise<string[]> {
+    try {
+      const { data, error } = await supabase
+        .from('vagas')
+        .select('codigo_vaga')
+        .eq('user_id', userId)
+        .in('codigo_vaga', codigos);
+      if (error) throw error;
+      return ((data as { codigo_vaga: string }[]) || []).map((v) => v.codigo_vaga);
+    } catch (error) {
+      console.error('Erro ao verificar códigos existentes:', error);
+      throw error;
+    }
+  },
+
+  async importarLote(
+    vagas: Omit<IVaga, 'id' | 'created_at' | 'updated_at'>[]
+  ): Promise<{ criadas: number; erros: number }> {
+    let criadas = 0;
+    let erros = 0;
+    for (const vaga of vagas) {
+      const { error } = await supabase.from('vagas').insert([vaga]);
+      if (error) {
+        console.error('Erro ao importar vaga:', error);
+        erros++;
+      } else {
+        criadas++;
+      }
+    }
+    return { criadas, erros };
+  },
+
   async buscarAuditLog(vagaId: string): Promise<IVagaAuditLog[]> {
     try {
       const { data, error } = await supabase

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, X, ExternalLink } from 'lucide-react';
+import { Plus, Search, Filter, X, ExternalLink, Upload } from 'lucide-react';
 import { useVagas } from '@/hooks/useVagas';
 import { useAreas } from '@/hooks/useAreas';
 import { useConsultorias } from '@/hooks/useConsultorias';
@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { SkeletonTableRow } from '@/components/ui/Skeleton';
 import { DateRangeFilter } from '@/components/ui/DateRangeFilter';
 import VagaForm from '@/components/vagas/VagaForm';
+import VagaImportModal from '@/components/vagas/VagaImportModal';
 import { IVaga, IVagaComSla, TSlaStatus } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -35,11 +36,12 @@ const ITEMS_PER_PAGE = 20;
 const Vagas: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { vagas, loading, filtros, atualizarFiltros, limparFiltros, criar } = useVagas();
+  const { vagas, loading, filtros, atualizarFiltros, limparFiltros, criar, carregarVagas } = useVagas();
   const { areas } = useAreas();
   const { consultorias } = useConsultorias();
 
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -104,6 +106,10 @@ const Vagas: React.FC = () => {
             {temFiltros && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#1A56A0] rounded-full" />
             )}
+          </Button>
+          <Button variant="secondary" onClick={() => setShowImportModal(true)}>
+            <Upload size={16} />
+            Importar Planilha
           </Button>
           <Button variant="primary" onClick={() => setShowModal(true)}>
             <Plus size={16} />
@@ -329,6 +335,15 @@ const Vagas: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal importar planilha */}
+      <VagaImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        areas={areas}
+        consultorias={consultorias}
+        onSuccess={carregarVagas}
+      />
 
       {/* Modal criar vaga */}
       <Modal
