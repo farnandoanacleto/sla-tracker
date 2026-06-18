@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   CheckCircle, AlertTriangle, Clock, TrendingUp, Activity,
-  BarChart2, Filter, Building2, Layers,
+  BarChart2, Filter, Building2, Layers, DollarSign,
 } from 'lucide-react';
 import { useVagas } from '@/hooks/useVagas';
 import { useAreas } from '@/hooks/useAreas';
@@ -33,7 +33,7 @@ const ETAPA_NOMES: Record<TEtapaVaga, string> = {
 };
 
 const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -103,7 +103,10 @@ const Dashboard: React.FC = () => {
         ? Math.round(concluidas.reduce((s, v) => s + v.dias_uteis_totais, 0) / concluidas.length)
         : 0;
 
-    return { ativas, concluidas, atrasadas, taxaAdesao, mediaTotal };
+    const custoTotal = vagas.reduce((s, v) => s + v.custo_processo, 0);
+    const custoMedio = vagas.length > 0 ? custoTotal / vagas.length : 0;
+
+    return { ativas, concluidas, atrasadas, taxaAdesao, mediaTotal, custoTotal, custoMedio };
   }, [vagas]);
 
   // ── Painel Gargalos ──────────────────────────────────────────────────────
@@ -307,16 +310,28 @@ const Dashboard: React.FC = () => {
 
       {/* ── Painel Visão Geral ────────────────────────────────────────────── */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
-        </div>
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={<Activity size={18} />} label="Vagas Ativas" value={metricas.ativas.length} subtext="em andamento" color="#1A56A0" />
-          <StatCard icon={<CheckCircle size={18} />} label="Concluídas" value={metricas.concluidas.length} subtext="com fechamento" color="#10B981" />
-          <StatCard icon={<AlertTriangle size={18} />} label="Atrasadas" value={metricas.atrasadas.length} subtext="fora do SLA" color="#EF4444" />
-          <StatCard icon={<TrendingUp size={18} />} label="Taxa de SLA" value={`${metricas.taxaAdesao}%`} subtext="etapas dentro do prazo" color="#10B981" />
-        </div>
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon={<Activity size={18} />} label="Vagas Ativas" value={metricas.ativas.length} subtext="em andamento" color="#1A56A0" />
+            <StatCard icon={<CheckCircle size={18} />} label="Concluídas" value={metricas.concluidas.length} subtext="com fechamento" color="#10B981" />
+            <StatCard icon={<AlertTriangle size={18} />} label="Atrasadas" value={metricas.atrasadas.length} subtext="fora do SLA" color="#EF4444" />
+            <StatCard icon={<TrendingUp size={18} />} label="Taxa de SLA" value={`${metricas.taxaAdesao}%`} subtext="etapas dentro do prazo" color="#10B981" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard icon={<DollarSign size={18} />} label="Custo Total" value={formatCurrency(metricas.custoTotal)} subtext={`${vagas.length} processo${vagas.length !== 1 ? 's' : ''} filtrado${vagas.length !== 1 ? 's' : ''}`} color="#059669" />
+            <StatCard icon={<DollarSign size={18} />} label="Custo Médio" value={formatCurrency(metricas.custoMedio)} subtext="por processo" color="#F59E0B" />
+          </div>
+        </>
       )}
 
       {/* ── Painel Gargalos ───────────────────────────────────────────────── */}
