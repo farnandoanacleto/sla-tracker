@@ -77,11 +77,48 @@ const TIPO_MAP: Record<string, TTipoVaga> = {
 const normalizeStr = (s: string): string =>
   s.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+const isRealDate = (y: number, m: number, d: number): boolean => {
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+};
+
 const parseDate = (s: string): string | null => {
-  if (!s || !s.trim()) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return s.trim();
-  const brMatch = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+  const str = s.trim();
+  if (!str) return null;
+
+  // YYYY-MM-DD (ISO)
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const y = +isoMatch[1], m = +isoMatch[2], d = +isoMatch[3];
+    return isRealDate(y, m, d) ? str : null;
+  }
+
+  // DD/MM/YYYY ou MM/DD/YYYY — desambiguação pelo valor > 12
+  const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const a = +slashMatch[1], b = +slashMatch[2], y = +slashMatch[3];
+    // a > 12 → deve ser DD/MM/YYYY; b > 12 → deve ser MM/DD/YYYY; senão assume DD/MM/YYYY (BR)
+    const [day, month] = a > 12 ? [a, b] : b > 12 ? [b, a] : [a, b];
+    if (!isRealDate(y, month, day)) return null;
+    return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  // Serial number do Excel (número inteiro como string, ex: "46419")
+  if (/^\d+$/.test(str)) {
+    const serial = +str;
+    if (serial > 0) {
+      const dt = new Date((serial - 25569) * 86400 * 1000);
+      if (!isNaN(dt.getTime())) {
+        const y = dt.getUTCFullYear();
+        if (y >= 1900 && y <= 2200) {
+          const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(dt.getUTCDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        }
+      }
+    }
+  }
+
   return null;
 };
 
@@ -128,13 +165,12 @@ const VagaImportModal: React.FC<VagaImportModalProps> = ({
       setProcessError(null);
       setIsProcessing(true);
       try {
-        const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: false });
+        const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: true });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rawRows = XLSX.utils.sheet_to_json(sheet, {
-          raw: false,
-          dateNF: 'yyyy-mm-dd',
+          raw: true,
           defval: '',
-        }) as Record<string, string>[];
+        }) as Record<string, unknown>[];
 
         if (rawRows.length === 0) {
           setProcessError('A planilha não contém dados.');
@@ -157,7 +193,16 @@ const VagaImportModal: React.FC<VagaImportModalProps> = ({
         const importRows: IImportRow[] = rawRows.map((row, index) => {
           const rawData: Record<string, string> = {};
           Object.keys(row).forEach((k) => {
-            rawData[k.toLowerCase().trim().replace(/ /g, '_')] = String(row[k]);
+            const val = row[k];
+            const key = k.toLowerCase().trim().replace(/ /g, '_');
+            if (val instanceof Date) {
+              const y = val.getUTCFullYear();
+              const mo = String(val.getUTCMonth() + 1).padStart(2, '0');
+              const dy = String(val.getUTCDate()).padStart(2, '0');
+              rawData[key] = `${y}-${mo}-${dy}`;
+            } else {
+              rawData[key] = val != null ? String(val) : '';
+            }
           });
 
           const errors: string[] = [];
