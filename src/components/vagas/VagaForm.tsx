@@ -17,6 +17,8 @@ interface VagaFormProps {
   loading?: boolean;
 }
 
+const DRAFT_KEY = 'sla-tracker-rascunho-vaga';
+
 const tipoOptions: SelectOption[] = [
   { value: 'interna', label: 'Interna' },
   { value: 'externa', label: 'Externa' },
@@ -61,9 +63,18 @@ const VagaForm: React.FC<VagaFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [form, setForm] = useState<TVagaFormData>({
-    ...EMPTY_FORM,
-    ...initialData,
+  const isNewForm = !initialData;
+
+  const [form, setForm] = useState<TVagaFormData>(() => {
+    if (isNewForm) {
+      try {
+        const draft = localStorage.getItem(DRAFT_KEY);
+        if (draft) return { ...EMPTY_FORM, ...JSON.parse(draft) };
+      } catch {
+        // ignora erros de parse
+      }
+    }
+    return { ...EMPTY_FORM, ...initialData };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -73,6 +84,26 @@ const VagaForm: React.FC<VagaFormProps> = ({
       setForm((prev) => ({ ...prev, ...initialData }));
     }
   }, [initialData]);
+
+  // Salvar rascunho no localStorage a cada mudança (somente no formulário de criação)
+  useEffect(() => {
+    if (isNewForm) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    }
+  }, [form, isNewForm]);
+
+  // Avisar ao fechar/recarregar a página se houver dados não salvos
+  useEffect(() => {
+    if (!isNewForm) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (JSON.stringify(form) !== JSON.stringify(EMPTY_FORM)) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [form, isNewForm]);
 
   const set = <K extends keyof TVagaFormData>(key: K, value: TVagaFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -134,6 +165,14 @@ const VagaForm: React.FC<VagaFormProps> = ({
     return Object.keys(errs).length === 0;
   };
 
+  const handleCancel = () => {
+    if (isNewForm && JSON.stringify(form) !== JSON.stringify(EMPTY_FORM)) {
+      if (!window.confirm('Você tem alterações não salvas. Deseja descartar?')) return;
+      localStorage.removeItem(DRAFT_KEY);
+    }
+    onCancel?.();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -146,6 +185,10 @@ const VagaForm: React.FC<VagaFormProps> = ({
     };
 
     await onSubmit(dataToSend);
+    // Limpar rascunho após salvar com sucesso
+    if (isNewForm) {
+      localStorage.removeItem(DRAFT_KEY);
+    }
   };
 
   return (
@@ -307,7 +350,7 @@ const VagaForm: React.FC<VagaFormProps> = ({
       {/* Ações */}
       <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
         {onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
+          <Button type="button" variant="secondary" onClick={handleCancel} disabled={loading}>
             Cancelar
           </Button>
         )}
