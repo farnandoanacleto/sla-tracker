@@ -16,7 +16,10 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Mostra loading apenas enquanto a sessão inicial ainda não foi confirmada.
+  // Se já existe um usuário mas loading=true (ex: TOKEN_REFRESHED ao voltar de outra aba),
+  // mantém os filhos montados para não perder estado de formulários abertos.
+  if (loading && !user) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

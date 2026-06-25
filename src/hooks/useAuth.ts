@@ -50,9 +50,19 @@ export function useAuth() {
     });
 
     // 2. Escutar mudanças no estado de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!active) return;
-      
+
+      // TOKEN_REFRESHED é disparado ao renovar o JWT (ex: ao voltar de outra aba).
+      // Não define loading=true para evitar desmontar toda a UI enquanto o usuário trabalha.
+      if (event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id);
+          if (active) setUser({ ...session.user, profile });
+        }
+        return;
+      }
+
       setLoading(true);
       if (session?.user) {
         const authUser = session.user;
