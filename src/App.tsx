@@ -13,6 +13,7 @@ import Consultorias from '@/pages/Consultorias';
 import Areas from '@/pages/Areas';
 import Feriados from '@/pages/Feriados';
 import Relatorios from '@/pages/Relatorios';
+import SecuritySettings from '@/pages/SecuritySettings';
 
 /**
  * Layout autenticado: Sidebar fixa à esquerda + área de conteúdo.
@@ -60,6 +61,7 @@ export const App: React.FC = () => {
               <Route path="areas" element={<Areas />} />
               <Route path="feriados" element={<Feriados />} />
               <Route path="relatorios" element={<Relatorios />} />
+              <Route path="configuracoes-seguranca" element={<SecuritySettings />} />
             </Route>
 
             {/* Fallback */}

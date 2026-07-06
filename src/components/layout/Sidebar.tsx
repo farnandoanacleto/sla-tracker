@@ -12,6 +12,7 @@ import {
   ChevronRight,
   LogOut,
   Activity,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/contexts/ToastContext';
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { to: '/areas', icon: <Users size={20} />, label: 'Áreas' },
   { to: '/feriados', icon: <CalendarOff size={20} />, label: 'Feriados' },
   { to: '/relatorios', icon: <BarChart3 size={20} />, label: 'Relatórios' },
+  { to: '/configuracoes-seguranca', icon: <ShieldCheck size={20} />, label: 'Segurança' },
 ];
 
 /**

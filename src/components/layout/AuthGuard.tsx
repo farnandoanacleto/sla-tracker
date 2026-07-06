@@ -2,23 +2,16 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
+const SESSION_EXPIRED_KEY = 'sla_session_expired';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
-/**
- * Wrapper de proteção de rotas autenticadas.
- * Redireciona para /login se não houver sessão ativa.
- * Exibe esqueleto de carregamento enquanto verifica a sessão.
- */
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // Mostra loading apenas enquanto a sessão inicial ainda não foi confirmada.
-  // Se já existe um usuário mas loading=true (ex: TOKEN_REFRESHED ao voltar de outra aba),
-  // mantém os filhos montados para não perder estado de formulários abertos.
   if (loading && !user) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
@@ -31,8 +24,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   if (!user) {
-    // Redireciona para login preservando a rota original para redirect pós-login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const sessionExpired = sessionStorage.getItem(SESSION_EXPIRED_KEY) === 'true';
+    if (sessionExpired) sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+    return <Navigate to="/login" state={{ from: location, sessionExpired }} replace />;
   }
 
   return <>{children}</>;

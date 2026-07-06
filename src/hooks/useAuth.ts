@@ -5,14 +5,13 @@ import { IProfile } from '@/types';
 
 export type TAuthUser = User & { profile?: IProfile | null };
 
-/**
- * Hook customizado para gerenciar a autenticação e estado da sessão do usuário.
- */
+const SESSION_EXPIRED_KEY = 'sla_session_expired';
+const MANUAL_LOGOUT_KEY = 'sla_manual_logout';
+
 export function useAuth() {
   const [user, setUser] = useState<TAuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Função interna para carregar os dados de perfil da tabela public.profiles
   const fetchProfile = async (authUserId: string): Promise<IProfile | null> => {
     try {
       const { data, error } = await supabase
@@ -20,7 +19,6 @@ export function useAuth() {
         .select('*')
         .eq('id', authUserId)
         .maybeSingle();
-
       if (error) throw error;
       return data as IProfile | null;
     } catch (error) {
@@ -32,14 +30,12 @@ export function useAuth() {
   useEffect(() => {
     let active = true;
 
-    // 1. Obter a sessão inicial síncrona/assíncrona do Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return;
       if (session?.user) {
-        const authUser = session.user;
-        fetchProfile(authUser.id).then((profile) => {
+        fetchProfile(session.user.id).then((profile) => {
           if (active) {
-            setUser({ ...authUser, profile });
+            setUser({ ...session.user, profile });
             setLoading(false);
           }
         });
@@ -49,12 +45,9 @@ export function useAuth() {
       }
     });
 
-    // 2. Escutar mudanças no estado de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!active) return;
 
-      // TOKEN_REFRESHED é disparado ao renovar o JWT (ex: ao voltar de outra aba).
-      // Não define loading=true para evitar desmontar toda a UI enquanto o usuário trabalha.
       if (event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           const profile = await fetchProfile(session.user.id);
@@ -63,21 +56,27 @@ export function useAuth() {
         return;
       }
 
-      setLoading(true);
-      if (session?.user) {
-        const authUser = session.user;
-        const profile = await fetchProfile(authUser.id);
-        if (active) {
-          setUser({ ...authUser, profile });
+      if (event === 'SIGNED_OUT') {
+        const isManual = sessionStorage.getItem(MANUAL_LOGOUT_KEY) === 'true';
+        sessionStorage.removeItem(MANUAL_LOGOUT_KEY);
+        if (!isManual) {
+          sessionStorage.setItem(SESSION_EXPIRED_KEY, 'true');
         }
-      } else {
         if (active) {
           setUser(null);
+          setLoading(false);
         }
+        return;
       }
-      if (active) {
-        setLoading(false);
+
+      setLoading(true);
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        if (active) setUser({ ...session.user, profile });
+      } else {
+        if (active) setUser(null);
       }
+      if (active) setLoading(false);
     });
 
     return () => {
@@ -86,16 +85,10 @@ export function useAuth() {
     };
   }, []);
 
-  /**
-   * Realiza login por email e senha.
-   */
   const login = async (email: string, senha: string): Promise<void> => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password: senha,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) throw error;
     } catch (error) {
       console.error('Erro no login:', error);
@@ -104,21 +97,13 @@ export function useAuth() {
     }
   };
 
-  /**
-   * Realiza cadastro (sign up) criando o perfil associado.
-   */
   const signup = async (email: string, senha: string, nome: string): Promise<void> => {
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password: senha,
-        options: {
-          data: {
-            nome,
-            role: 'usuario', // role padrão
-          },
-        },
+        options: { data: { nome, role: 'usuario' } },
       });
       if (error) throw error;
     } catch (error) {
@@ -128,21 +113,81 @@ export function useAuth() {
     }
   };
 
-  /**
-   * Realiza logout encerrando a sessão.
-   */
   const logout = async (): Promise<void> => {
     setLoading(true);
+    sessionStorage.setItem(MANUAL_LOGOUT_KEY, 'true');
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
     } catch (error) {
       console.error('Erro no logout:', error);
+      sessionStorage.removeItem(MANUAL_LOGOUT_KEY);
       throw error;
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkMfaRequired = async (): Promise<{ required: boolean; factorId: string | null }> => {
+    try {
+      const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (error) throw error;
+      if (data.nextLevel === 'aal2' && data.currentLevel !== 'aal2') {
+        const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
+        if (factorsError) throw factorsError;
+        const totpFactor = factorsData?.totp?.find((f) => f.status === 'verified');
+        return { required: true, factorId: totpFactor?.id ?? null };
+      }
+      return { required: false, factorId: null };
+    } catch (error) {
+      console.error('Erro ao verificar MFA:', error);
+      return { required: false, factorId: null };
+    }
+  };
+
+  const challengeAndVerifyMfa = async (factorId: string, code: string): Promise<void> => {
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+    if (challengeError) throw challengeError;
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challengeData.id,
+      code,
+    });
+    if (verifyError) throw verifyError;
+  };
+
+  const enrollMfa = async (): Promise<{ qrCode: string; secret: string; factorId: string }> => {
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'SLA Tracker' });
+    if (error) throw error;
+    return { qrCode: data.totp.qr_code, secret: data.totp.secret, factorId: data.id };
+  };
+
+  const verifyAndActivateMfa = async (factorId: string, code: string): Promise<void> => {
+    const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({ factorId });
+    if (challengeError) throw challengeError;
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challengeData.id,
+      code,
+    });
+    if (verifyError) throw verifyError;
+  };
+
+  const unenrollMfa = async (factorId: string): Promise<void> => {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    if (error) throw error;
+  };
+
+  const listMfaFactors = async (): Promise<Array<{ id: string; status: string; factorType: string; friendlyName?: string }>> => {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) throw error;
+    return (data?.totp ?? []).map((f) => ({
+      id: f.id,
+      status: f.status,
+      factorType: 'totp',
+      friendlyName: f.friendly_name,
+    }));
   };
 
   return {
@@ -151,6 +196,12 @@ export function useAuth() {
     login,
     signup,
     logout,
+    checkMfaRequired,
+    challengeAndVerifyMfa,
+    enrollMfa,
+    verifyAndActivateMfa,
+    unenrollMfa,
+    listMfaFactors,
   };
 }
 
