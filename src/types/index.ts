@@ -153,6 +153,29 @@ export interface IVagaComSla extends IVaga {
 }
 
 /**
+ * Consentimento LGPD registrado pelo usuário (user_consents).
+ */
+export interface IUserConsent {
+  id: string;
+  user_id: string;
+  consent_type: 'privacy_policy' | 'terms_of_use';
+  accepted_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+}
+
+/**
+ * Solicitação de exclusão de conta (LGPD art. 18) (exclusion_requests).
+ */
+export interface IExclusionRequest {
+  id: string;
+  user_id: string;
+  requested_at: string;
+  status: 'pendente' | 'processada' | 'cancelada';
+  processed_at: string | null;
+}
+
+/**
  * Filtros globais aplicados na listagem de vagas e painéis de dashboard.
  */
 export interface IFiltrosVagas {

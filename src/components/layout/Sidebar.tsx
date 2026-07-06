@@ -13,6 +13,7 @@ import {
   LogOut,
   Activity,
   ShieldCheck,
+  UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/contexts/ToastContext';
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { to: '/feriados', icon: <CalendarOff size={20} />, label: 'Feriados' },
   { to: '/relatorios', icon: <BarChart3 size={20} />, label: 'Relatórios' },
   { to: '/configuracoes-seguranca', icon: <ShieldCheck size={20} />, label: 'Segurança' },
+  { to: '/configuracoes/meus-dados', icon: <UserCircle size={20} />, label: 'Meus Dados' },
 ];
 
 /**

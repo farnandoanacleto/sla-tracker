@@ -15,6 +15,7 @@ import Areas from '@/pages/Areas';
 import Feriados from '@/pages/Feriados';
 import Relatorios from '@/pages/Relatorios';
 import SecuritySettings from '@/pages/SecuritySettings';
+import MeusDados from '@/pages/MeusDados';
 import PoliticaPrivacidade from '@/pages/PoliticaPrivacidade';
 import TermosDeUso from '@/pages/TermosDeUso';
 
@@ -61,6 +62,7 @@ export const App: React.FC = () => {
               <Route path="feriados" element={<Feriados />} />
               <Route path="relatorios" element={<Relatorios />} />
               <Route path="configuracoes-seguranca" element={<SecuritySettings />} />
+              <Route path="configuracoes/meus-dados" element={<MeusDados />} />
             </Route>
 
             {/* Fallback */}
