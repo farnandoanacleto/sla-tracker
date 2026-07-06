@@ -97,15 +97,16 @@ export function useAuth() {
     }
   };
 
-  const signup = async (email: string, senha: string, nome: string): Promise<void> => {
+  const signup = async (email: string, senha: string, nome: string): Promise<string | null> => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
         options: { data: { nome, role: 'usuario' } },
       });
       if (error) throw error;
+      return data.user?.id ?? null;
     } catch (error) {
       console.error('Erro no signup:', error);
       setLoading(false);

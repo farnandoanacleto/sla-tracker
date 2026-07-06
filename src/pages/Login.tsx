@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Activity, Eye, EyeOff, LogIn, UserPlus, ShieldAlert, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/contexts/ToastContext';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { checkRateLimit, recordFailedAttempt, clearLoginAttempts } from '@/lib/rateLimiter';
 import { validateStrongPassword } from '@/lib/passwordPolicy';
+import { recordUserConsents } from '@/services/consentService';
 
 type TMode = 'login' | 'signup';
 type TLoginStep = 'credentials' | 'mfa';
@@ -23,6 +24,8 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [blockInfo, setBlockInfo] = useState<{ blocked: boolean; minutesLeft: number }>({ blocked: false, minutesLeft: 0 });
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentTerms, setConsentTerms] = useState(false);
 
   const { login, signup, checkMfaRequired, challengeAndVerifyMfa } = useAuth();
   const { showToast } = useToast();
@@ -60,6 +63,10 @@ const Login: React.FC = () => {
       if (!result.isValid) errs.senha = result.errors[0];
     } else if (senha.length < 6) {
       errs.senha = 'Senha inválida';
+    }
+    if (mode === 'signup') {
+      if (!consentPrivacy) errs.consentPrivacy = 'Você deve aceitar a Política de Privacidade';
+      if (!consentTerms) errs.consentTerms = 'Você deve aceitar os Termos de Uso';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -118,9 +125,18 @@ const Login: React.FC = () => {
         clearLoginAttempts(email);
         navigate(from, { replace: true });
       } else {
-        await signup(email, senha, nome);
+        const userId = await signup(email, senha, nome);
+        if (userId) {
+          try {
+            await recordUserConsents(userId, ['privacy_policy', 'terms_of_use']);
+          } catch {
+            console.error('Falha ao registrar consentimento — processo continua');
+          }
+        }
         showToast('Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
         setMode('login');
+        setConsentPrivacy(false);
+        setConsentTerms(false);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro inesperado. Tente novamente.';
@@ -146,6 +162,8 @@ const Login: React.FC = () => {
     setMode((m) => (m === 'login' ? 'signup' : 'login'));
     setErrors({});
     setStep('credentials');
+    setConsentPrivacy(false);
+    setConsentTerms(false);
   };
 
   const passwordRequirements = mode === 'signup'
@@ -323,6 +341,71 @@ const Login: React.FC = () => {
                   )}
                 </div>
 
+                {/* Checkboxes de consentimento LGPD (apenas no cadastro) */}
+                {mode === 'signup' && (
+                  <div className="flex flex-col gap-3 pt-1">
+                    <div className="flex flex-col gap-1">
+                      <label className="flex items-start gap-2.5 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          id="consent-privacy"
+                          checked={consentPrivacy}
+                          onChange={(e) => {
+                            setConsentPrivacy(e.target.checked);
+                            if (e.target.checked) setErrors((prev) => { const { consentPrivacy: _, ...rest } = prev; return rest; });
+                          }}
+                          className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#1A56A0] accent-[#1A56A0] flex-shrink-0 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-600 leading-relaxed">
+                          Li e aceito a{' '}
+                          <Link
+                            to="/politica-privacidade"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#1A56A0] font-medium hover:underline"
+                          >
+                            Política de Privacidade
+                          </Link>
+                          {' '}e autorizo o tratamento dos meus dados pessoais conforme descrito nela.
+                        </span>
+                      </label>
+                      {errors.consentPrivacy && (
+                        <p className="text-xs text-red-500 pl-6">{errors.consentPrivacy}</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="flex items-start gap-2.5 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          id="consent-terms"
+                          checked={consentTerms}
+                          onChange={(e) => {
+                            setConsentTerms(e.target.checked);
+                            if (e.target.checked) setErrors((prev) => { const { consentTerms: _, ...rest } = prev; return rest; });
+                          }}
+                          className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#1A56A0] accent-[#1A56A0] flex-shrink-0 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-600 leading-relaxed">
+                          Li e aceito os{' '}
+                          <Link
+                            to="/termos-de-uso"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#1A56A0] font-medium hover:underline"
+                          >
+                            Termos de Uso
+                          </Link>
+                          {' '}da plataforma.
+                        </span>
+                      </label>
+                      {errors.consentTerms && (
+                        <p className="text-xs text-red-500 pl-6">{errors.consentTerms}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   variant="primary"
@@ -347,9 +430,30 @@ const Login: React.FC = () => {
           )}
         </div>
 
-        <p className="text-center text-xs text-slate-400 mt-4">
-          © {new Date().getFullYear()} Unimed · Sistema interno de RH
-        </p>
+        {/* Footer links */}
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <Link
+            to="/politica-privacidade"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            Política de Privacidade
+          </Link>
+          <span className="text-slate-600">·</span>
+          <Link
+            to="/termos-de-uso"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            Termos de Uso
+          </Link>
+          <span className="text-slate-600">·</span>
+          <span className="text-xs text-slate-400">
+            © {new Date().getFullYear()} Attrax Digital
+          </span>
+        </div>
       </div>
     </div>
   );

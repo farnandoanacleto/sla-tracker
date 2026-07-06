@@ -4,6 +4,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { AuthGuard } from '@/components/layout/AuthGuard';
+import { AppFooter } from '@/components/layout/AppFooter';
 
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
@@ -14,36 +15,34 @@ import Areas from '@/pages/Areas';
 import Feriados from '@/pages/Feriados';
 import Relatorios from '@/pages/Relatorios';
 import SecuritySettings from '@/pages/SecuritySettings';
+import PoliticaPrivacidade from '@/pages/PoliticaPrivacidade';
+import TermosDeUso from '@/pages/TermosDeUso';
 
-/**
- * Layout autenticado: Sidebar fixa à esquerda + área de conteúdo.
- * Margem esquerda reage ao estado colapsado da sidebar via contexto.
- */
 const AppLayout: React.FC = () => {
   const { collapsed } = useSidebar();
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       <Sidebar />
-      <main className={`flex-1 transition-all duration-300 min-w-0 ${collapsed ? 'ml-16' : 'ml-64'}`}>
-        <Outlet />
-      </main>
+      <div className={`flex flex-col flex-1 transition-all duration-300 min-w-0 ${collapsed ? 'ml-16' : 'ml-64'}`}>
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <AppFooter />
+      </div>
     </div>
   );
 };
 
-/**
- * Ponto de entrada da aplicação.
- * Rotas públicas: /login
- * Rotas privadas: encapsuladas em AuthGuard + AppLayout
- */
 export const App: React.FC = () => {
   return (
     <ToastProvider>
       <SidebarProvider>
         <BrowserRouter>
           <Routes>
-            {/* Rota pública */}
+            {/* Rotas públicas */}
             <Route path="/login" element={<Login />} />
+            <Route path="/politica-privacidade" element={<PoliticaPrivacidade />} />
+            <Route path="/termos-de-uso" element={<TermosDeUso />} />
 
             {/* Rotas protegidas */}
             <Route
