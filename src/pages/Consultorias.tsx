@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+import { sanitizeText } from '@/utils/sanitize';
 
 interface ConsultoriaFormData {
   nome: string;
@@ -57,10 +58,10 @@ const Consultorias: React.FC = () => {
     setSaving(true);
     try {
       if (editando) {
-        await atualizar(editando.id, form.nome, form.contato);
+        await atualizar(editando.id, sanitizeText(form.nome), sanitizeText(form.contato));
         showToast('Consultoria atualizada!', 'success');
       } else {
-        await criar(form.nome, form.contato);
+        await criar(sanitizeText(form.nome), sanitizeText(form.contato));
         showToast('Consultoria criada!', 'success');
       }
       fecharModal();

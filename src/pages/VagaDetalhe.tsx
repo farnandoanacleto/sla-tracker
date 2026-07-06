@@ -15,6 +15,7 @@ import VagaForm from '@/components/vagas/VagaForm';
 import { IVaga, TSlaStatus } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { maskEmailsInText } from '@/utils/sanitize';
 
 const SLA_BADGE: Record<TSlaStatus, { label: string; variant: 'verde' | 'vermelho' | 'cinza' | 'amarelo' | 'azul' }> = {
   no_prazo: { label: 'No prazo', variant: 'verde' },
@@ -202,11 +203,11 @@ const VagaDetalhe: React.FC = () => {
                       <span className="font-medium text-gray-700">{log.campo}</span>
                       <span className="text-gray-400"> alterado de </span>
                       <span className="font-mono text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
-                        {log.valor_antigo ?? '—'}
+                        {maskEmailsInText(log.valor_antigo) ?? '—'}
                       </span>
                       <span className="text-gray-400"> para </span>
                       <span className="font-mono text-xs bg-green-50 text-green-600 px-1.5 py-0.5 rounded">
-                        {log.valor_novo ?? '—'}
+                        {maskEmailsInText(log.valor_novo) ?? '—'}
                       </span>
                     </div>
                     <span className="text-xs text-gray-400 flex-shrink-0">

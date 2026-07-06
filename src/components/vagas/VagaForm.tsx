@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IVaga, TNivelVaga, TTipoVaga } from '@/types';
+import { sanitizeText } from '@/utils/sanitize';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectOption } from '@/components/ui/Select';
 import { DatePicker } from '@/components/ui/DatePicker';
@@ -177,9 +178,11 @@ const VagaForm: React.FC<VagaFormProps> = ({
     e.preventDefault();
     if (!validate()) return;
 
-    // Limpar consultoria_id para vagas internas
     const dataToSend: TVagaFormData = {
       ...form,
+      codigo_vaga: sanitizeText(form.codigo_vaga),
+      nome_vaga: sanitizeText(form.nome_vaga),
+      gestor_solicitante: sanitizeText(form.gestor_solicitante),
       consultoria_id: form.tipo_vaga === 'interna' ? null : form.consultoria_id,
       data_abertura_consultoria: form.tipo_vaga === 'interna' ? null : form.data_abertura_consultoria,
     };

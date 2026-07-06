@@ -5,6 +5,7 @@ import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { AuthGuard } from '@/components/layout/AuthGuard';
 import { AppFooter } from '@/components/layout/AppFooter';
+import { IdleSessionGuard } from '@/components/layout/IdleSessionGuard';
 
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
@@ -23,6 +24,7 @@ const AppLayout: React.FC = () => {
   const { collapsed } = useSidebar();
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
+      <IdleSessionGuard />
       <Sidebar />
       <div className={`flex flex-col flex-1 transition-all duration-300 min-w-0 ${collapsed ? 'ml-16' : 'ml-64'}`}>
         <main className="flex-1">

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { SkeletonCard } from '@/components/ui/Skeleton';
+import { sanitizeText } from '@/utils/sanitize';
 
 interface AreaFormData {
   nome: string;
@@ -50,10 +51,10 @@ const Areas: React.FC = () => {
     setSaving(true);
     try {
       if (editando) {
-        await atualizar(editando.id, form.nome, form.responsavel);
+        await atualizar(editando.id, sanitizeText(form.nome), sanitizeText(form.responsavel));
         showToast('Área atualizada!', 'success');
       } else {
-        await criar(form.nome, form.responsavel);
+        await criar(sanitizeText(form.nome), sanitizeText(form.responsavel));
         showToast('Área criada!', 'success');
       }
       fecharModal();
