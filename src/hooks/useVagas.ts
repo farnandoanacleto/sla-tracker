@@ -138,6 +138,37 @@ export function useVagas() {
   };
 
   /**
+   * Exclui uma vaga e atualiza a listagem.
+   */
+  const excluir = async (id: string): Promise<void> => {
+    try {
+      await vagaService.excluir(id);
+      if (vagaAtual?.id === id) {
+        setVagaAtual(null);
+        setAuditLog([]);
+      }
+      await carregarVagas();
+    } catch (error) {
+      console.error('Erro ao excluir vaga no hook:', error);
+      throw error;
+    }
+  };
+
+  /**
+   * Exclui várias vagas de uma vez e atualiza a listagem.
+   */
+  const excluirVarias = async (ids: string[]): Promise<number> => {
+    try {
+      const qtd = await vagaService.excluirVarias(ids);
+      await carregarVagas();
+      return qtd;
+    } catch (error) {
+      console.error('Erro ao excluir vagas no hook:', error);
+      throw error;
+    }
+  };
+
+  /**
    * Limpa os filtros definidos, retornando ao estado inicial.
    */
   const limparFiltros = () => {
@@ -165,6 +196,8 @@ export function useVagas() {
     buscarVaga,
     criar,
     atualizar,
+    excluir,
+    excluirVarias,
     atualizarFiltros,
     limparFiltros,
   };
