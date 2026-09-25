@@ -293,6 +293,55 @@ export const vagaService = {
     return { criadas, erros };
   },
 
+  /**
+   * Exclui uma vaga definitivamente. O histórico de auditoria da vaga
+   * (vaga_audit_log) é removido junto, via ON DELETE CASCADE no banco.
+   *
+   * @param id ID da vaga a ser excluída
+   */
+  async excluir(id: string): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('vagas')
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+      if (error) throw error;
+
+      // Se o RLS bloquear, o Supabase não retorna erro, apenas 0 linhas afetadas
+      if (!data || data.length === 0) {
+        throw new Error('Não foi possível excluir a vaga. Verifique se você tem permissão.');
+      }
+    } catch (error) {
+      console.error(`Erro ao excluir vaga por ID ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Exclui várias vagas de uma vez (exclusão definitiva).
+   *
+   * @param ids IDs das vagas a excluir
+   * @returns Quantidade de vagas efetivamente excluídas
+   */
+  async excluirVarias(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    try {
+      const { data, error } = await supabase
+        .from('vagas')
+        .delete()
+        .in('id', ids)
+        .select('id');
+
+      if (error) throw error;
+      return data?.length ?? 0;
+    } catch (error) {
+      console.error('Erro ao excluir vagas em lote:', error);
+      throw error;
+    }
+  },
+
   async buscarAuditLog(vagaId: string): Promise<IVagaAuditLog[]> {
     try {
       const { data, error } = await supabase
