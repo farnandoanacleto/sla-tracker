@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Clock, Calendar, Building2, User, Briefcase, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Clock, Calendar, Building2, User, Briefcase, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { useVagas } from '@/hooks/useVagas';
 import { useAreas } from '@/hooks/useAreas';
 import { useConsultorias } from '@/hooks/useConsultorias';
@@ -37,13 +37,15 @@ const VagaDetalhe: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { vagaAtual, auditLog, loadingDetalhe, buscarVaga, atualizar } = useVagas();
+  const { vagaAtual, auditLog, loadingDetalhe, buscarVaga, atualizar, excluir } = useVagas();
   const { areas } = useAreas();
   const { consultorias } = useConsultorias();
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (id) buscarVaga(id);
@@ -63,7 +65,22 @@ const VagaDetalhe: React.FC = () => {
     }
   };
 
-  if (loadingDetalhe) {
+  const handleExcluir = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await excluir(id);
+      showToast('Vaga excluída com sucesso!', 'success');
+      setShowDeleteModal(false);
+      navigate('/vagas');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir vaga', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loadingDetalhe && !deleting) {
     return (
       <div className="p-6 space-y-4">
         <SkeletonCard />
@@ -109,10 +126,16 @@ const VagaDetalhe: React.FC = () => {
             <p className="text-sm text-gray-500 font-mono mt-0.5">{vagaAtual.codigo_vaga}</p>
           </div>
         </div>
-        <Button variant="primary" onClick={() => setShowEditModal(true)}>
-          <Edit size={16} />
-          Editar vaga
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
+            <Trash2 size={16} />
+            Excluir
+          </Button>
+          <Button variant="primary" onClick={() => setShowEditModal(true)}>
+            <Edit size={16} />
+            Editar vaga
+          </Button>
+        </div>
       </div>
 
       {/* Info cards */}
@@ -237,6 +260,33 @@ const VagaDetalhe: React.FC = () => {
           onCancel={() => setShowEditModal(false)}
           loading={saving}
         />
+      </Modal>
+
+      {/* Modal confirmação exclusão */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => !deleting && setShowDeleteModal(false)}
+        title="Excluir Vaga"
+        size="sm"
+        disableBackdropClose={deleting}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600">
+            Tem certeza que deseja excluir a vaga{' '}
+            <strong>{vagaAtual.codigo_vaga} – {vagaAtual.nome_vaga}</strong>?
+          </p>
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
+            Esta ação não pode ser desfeita. O histórico de alterações da vaga também será apagado.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleExcluir} disabled={deleting}>
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

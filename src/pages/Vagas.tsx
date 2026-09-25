@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, X, ExternalLink, Upload } from 'lucide-react';
+import { Plus, Search, Filter, X, ExternalLink, Upload, Trash2 } from 'lucide-react';
 import { useVagas } from '@/hooks/useVagas';
 import { useAreas } from '@/hooks/useAreas';
 import { useConsultorias } from '@/hooks/useConsultorias';
@@ -36,7 +36,7 @@ const ITEMS_PER_PAGE = 20;
 const Vagas: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { vagas, loading, filtros, atualizarFiltros, limparFiltros, criar, carregarVagas } = useVagas();
+  const { vagas, loading, filtros, atualizarFiltros, limparFiltros, criar, carregarVagas, excluirVarias } = useVagas();
   const { areas } = useAreas();
   const { consultorias } = useConsultorias();
 
@@ -45,6 +45,11 @@ const Vagas: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Exclusão
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [paraExcluir, setParaExcluir] = useState<IVagaComSla[]>([]);
+  const [excluindo, setExcluindo] = useState(false);
 
   const totalPages = Math.ceil(vagas.length / ITEMS_PER_PAGE);
   const vagasPaginadas = vagas.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -65,6 +70,56 @@ const Vagas: React.FC = () => {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const idsPagina = vagasPaginadas.map((v) => v.id);
+  const todasDaPaginaSelecionadas = idsPagina.length > 0 && idsPagina.every((id) => selecionadas.has(id));
+
+  const toggleSelecionada = (id: string) => {
+    setSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleTodasDaPagina = () => {
+    setSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (todasDaPaginaSelecionadas) idsPagina.forEach((id) => next.delete(id));
+      else idsPagina.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const abrirExclusaoSelecionadas = () => {
+    setParaExcluir(vagas.filter((v) => selecionadas.has(v.id)));
+  };
+
+  const handleConfirmarExclusao = async () => {
+    if (paraExcluir.length === 0) return;
+    setExcluindo(true);
+    try {
+      const qtd = await excluirVarias(paraExcluir.map((v) => v.id));
+      if (qtd === 0) {
+        showToast('Nenhuma vaga foi excluída. Verifique suas permissões.', 'error');
+      } else if (qtd < paraExcluir.length) {
+        showToast(`${qtd} de ${paraExcluir.length} vagas excluídas. Algumas não puderam ser removidas.`, 'error');
+      } else {
+        showToast(qtd === 1 ? 'Vaga excluída com sucesso!' : `${qtd} vagas excluídas com sucesso!`, 'success');
+      }
+      setSelecionadas((prev) => {
+        const next = new Set(prev);
+        paraExcluir.forEach((v) => next.delete(v.id));
+        return next;
+      });
+      setParaExcluir([]);
+      setPage(1);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Erro ao excluir vagas', 'error');
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -210,12 +265,40 @@ const Vagas: React.FC = () => {
         </div>
       )}
 
+      {/* Barra de exclusão em lote */}
+      {selecionadas.size > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <p className="text-sm text-red-700">
+            <strong>{selecionadas.size}</strong> vaga{selecionadas.size !== 1 ? 's' : ''} selecionada{selecionadas.size !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => setSelecionadas(new Set())}>
+              Limpar seleção
+            </Button>
+            <Button variant="danger" onClick={abrirExclusaoSelecionadas}>
+              <Trash2 size={16} />
+              Excluir selecionadas
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Tabela */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={todasDaPaginaSelecionadas}
+                    onChange={toggleTodasDaPagina}
+                    disabled={loading || vagasPaginadas.length === 0}
+                    className="w-4 h-4 rounded border-gray-300 text-[#1A56A0] focus:ring-[#1A56A0] cursor-pointer"
+                    aria-label="Selecionar todas as vagas da página"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Código</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Área</th>
@@ -228,11 +311,11 @@ const Vagas: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <SkeletonTableRow key={i} cols={7} />
+                  <SkeletonTableRow key={i} cols={8} />
                 ))
               ) : vagasPaginadas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-2">
                       <Search size={32} className="text-gray-300" />
                       <p className="font-medium">Nenhuma vaga encontrada</p>
@@ -249,6 +332,15 @@ const Vagas: React.FC = () => {
                       className="hover:bg-gray-50/70 transition-colors cursor-pointer"
                       onClick={() => navigate(`/vagas/${vaga.id}`)}
                     >
+                      <td className="w-10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selecionadas.has(vaga.id)}
+                          onChange={() => toggleSelecionada(vaga.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-[#1A56A0] focus:ring-[#1A56A0] cursor-pointer"
+                          aria-label={`Selecionar vaga ${vaga.codigo_vaga}`}
+                        />
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-[#1A56A0]">
                         {vaga.codigo_vaga}
                       </td>
@@ -271,7 +363,7 @@ const Vagas: React.FC = () => {
                       <td className="px-4 py-3">
                         <Badge variant={sla.variant}>{sla.label}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); navigate(`/vagas/${vaga.id}`); }}
@@ -279,6 +371,15 @@ const Vagas: React.FC = () => {
                           aria-label="Ver detalhes"
                         >
                           <ExternalLink size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setParaExcluir([vaga]); }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          aria-label={`Excluir vaga ${vaga.codigo_vaga}`}
+                          title="Excluir vaga"
+                        >
+                          <Trash2 size={15} />
                         </button>
                       </td>
                     </tr>
@@ -335,6 +436,49 @@ const Vagas: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal confirmação exclusão */}
+      <Modal
+        isOpen={paraExcluir.length > 0}
+        onClose={() => !excluindo && setParaExcluir([])}
+        title={paraExcluir.length === 1 ? 'Excluir Vaga' : 'Excluir Vagas'}
+        size="md"
+        disableBackdropClose={excluindo}
+      >
+        <div className="flex flex-col gap-4">
+          {paraExcluir.length === 1 ? (
+            <p className="text-sm text-gray-600">
+              Tem certeza que deseja excluir a vaga{' '}
+              <strong>{paraExcluir[0].codigo_vaga} – {paraExcluir[0].nome_vaga}</strong>?
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-gray-600">
+                Tem certeza que deseja excluir <strong>{paraExcluir.length} vagas</strong>?
+              </p>
+              <ul className="max-h-40 overflow-y-auto text-sm text-gray-700 bg-gray-50 rounded-lg p-3 space-y-1">
+                {paraExcluir.map((v) => (
+                  <li key={v.id}>
+                    <span className="font-mono text-xs text-[#1A56A0]">{v.codigo_vaga}</span> – {v.nome_vaga}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
+            A exclusão é definitiva, incluindo o histórico de alterações. Para ter a vaga de volta,
+            será preciso cadastrá-la de novo ou importar a planilha novamente.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setParaExcluir([])} disabled={excluindo}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleConfirmarExclusao} disabled={excluindo}>
+              {excluindo ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Modal importar planilha */}
       <VagaImportModal
