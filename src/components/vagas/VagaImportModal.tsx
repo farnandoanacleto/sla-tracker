@@ -125,6 +125,36 @@ const parseDate = (s: string): string | null => {
   return null;
 };
 
+/**
+ * Converte o custo vindo da planilha em número.
+ * - Célula numérica do Excel (ex: 5455.32): usada direto, sem conversão de texto.
+ * - Texto em formato brasileiro ("R$ 5.455,32", "5455,32") ou americano ("5,455.32").
+ */
+const parseCusto = (valor: unknown): number => {
+  if (typeof valor === 'number') return Number.isFinite(valor) ? Math.round(valor * 100) / 100 : 0;
+  let str = String(valor ?? '').trim().replace(/[^0-9.,-]/g, '');
+  if (!str) return 0;
+
+  const ultimaVirgula = str.lastIndexOf(',');
+  const ultimoPonto = str.lastIndexOf('.');
+
+  if (ultimaVirgula !== -1 && ultimoPonto !== -1) {
+    // Os dois separadores: o último é o decimal
+    str = ultimaVirgula > ultimoPonto
+      ? str.replace(/\./g, '').replace(',', '.')
+      : str.replace(/,/g, '');
+  } else if (ultimaVirgula !== -1) {
+    // Só vírgula: decimal brasileiro
+    str = str.replace(/,/g, (_m, i) => (i === ultimaVirgula ? '.' : ''));
+  } else if (ultimoPonto !== -1 && /^-?\d{1,3}(\.\d{3})+$/.test(str)) {
+    // Só ponto no padrão de milhar (5.455 / 1.234.567)
+    str = str.replace(/\./g, '');
+  }
+
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+};
+
 const VagaImportModal: React.FC<VagaImportModalProps> = ({
   isOpen,
   onClose,
@@ -250,11 +280,10 @@ const VagaImportModal: React.FC<VagaImportModalProps> = ({
             else consultoriaId = consultoria.id;
           }
 
-          const custoStr = (rawData['custo_processo'] || '0')
-            .replace(/\./g, '')
-            .replace(',', '.')
-            .replace(/[^0-9.]/g, '');
-          const custoProcesso = parseFloat(custoStr) || 0;
+          const custoOriginal = Object.entries(row).find(
+            ([k]) => k.toLowerCase().trim().replace(/ /g, '_') === 'custo_processo'
+          )?.[1];
+          const custoProcesso = parseCusto(custoOriginal);
 
           const isValid = errors.length === 0;
 
