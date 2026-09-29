@@ -54,9 +54,9 @@ export interface IFeriado {
 }
 
 /**
- * Tipo da Vaga (interna ou externa).
+ * Tipo da Vaga (interna, externa ou híbrida).
  */
-export type TTipoVaga = 'interna' | 'externa';
+export type TTipoVaga = 'interna' | 'externa' | 'hibrida';
 
 /**
  * Nível hierárquico da Vaga.

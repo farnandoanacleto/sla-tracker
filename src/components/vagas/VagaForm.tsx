@@ -1,3 +1,4 @@
+import { TIPO_VAGA_OPTIONS, usaConsultoria } from '@/utils/tipoVaga';
 import React, { useEffect, useState } from 'react';
 import { IVaga, TNivelVaga, TTipoVaga } from '@/types';
 import { sanitizeText } from '@/utils/sanitize';
@@ -20,10 +21,7 @@ interface VagaFormProps {
 
 const DRAFT_KEY = 'sla-tracker-rascunho-vaga';
 
-const tipoOptions: SelectOption[] = [
-  { value: 'interna', label: 'Interna' },
-  { value: 'externa', label: 'Externa' },
-];
+const tipoOptions: SelectOption[] = TIPO_VAGA_OPTIONS;
 
 const nivelOptions: SelectOption[] = [
   { value: 'auxiliar', label: 'Auxiliar' },
@@ -146,7 +144,7 @@ const VagaForm: React.FC<VagaFormProps> = ({
     const datas: { campo: keyof TVagaFormData; label: string; anterior?: keyof TVagaFormData }[] = [
       { campo: 'data_aprovacao', label: 'Data de aprovação', anterior: 'data_solicitacao' },
       { campo: 'data_abertura_consultoria', label: 'Data abertura consultoria', anterior: 'data_aprovacao' },
-      { campo: 'data_envio_candidatos', label: 'Data envio candidatos', anterior: form.tipo_vaga === 'interna' ? 'data_aprovacao' : 'data_abertura_consultoria' },
+      { campo: 'data_envio_candidatos', label: 'Data envio candidatos', anterior: usaConsultoria(form) && form.data_abertura_consultoria ? 'data_abertura_consultoria' : 'data_aprovacao' },
       { campo: 'data_entrevista', label: 'Data entrevista', anterior: 'data_envio_candidatos' },
       { campo: 'data_fechamento', label: 'Data fechamento', anterior: 'data_entrevista' },
       { campo: 'data_inicio_colaborador', label: 'Data início colaborador', anterior: 'data_fechamento' },
@@ -255,7 +253,7 @@ const VagaForm: React.FC<VagaFormProps> = ({
             placeholder="Nome do gestor"
             required
           />
-          {form.tipo_vaga === 'externa' && (
+          {form.tipo_vaga !== 'interna' && (
             <Select
               label="Consultoria"
               id="vaga-consultoria"
@@ -264,7 +262,7 @@ const VagaForm: React.FC<VagaFormProps> = ({
               options={consultoriaOptions}
               placeholder="Selecione a consultoria..."
               error={errors.consultoria_id}
-              required
+              required={form.tipo_vaga === 'externa'}
             />
           )}
           <Input
@@ -305,7 +303,7 @@ const VagaForm: React.FC<VagaFormProps> = ({
             error={errors.data_aprovacao}
             min={form.data_solicitacao || undefined}
           />
-          {form.tipo_vaga === 'externa' && (
+          {form.tipo_vaga !== 'interna' && (
             <DatePicker
               label="Abertura de Consultoria"
               id="vaga-data-abertura"

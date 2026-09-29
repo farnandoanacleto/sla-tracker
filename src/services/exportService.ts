@@ -1,3 +1,4 @@
+import { labelTipoVaga, usaConsultoria } from '@/utils/tipoVaga';
 import * as XLSX from 'xlsx';
 import { IVagaComSla } from '@/types';
 import { formatDate, formatCurrency } from '@/utils/formatters';
@@ -39,7 +40,7 @@ export const exportService = {
         return {
           'Código da Vaga': vaga.codigo_vaga,
           'Nome da Vaga': vaga.nome_vaga,
-          'Tipo de Vaga': vaga.tipo_vaga === 'interna' ? 'Interna' : 'Externa',
+          'Tipo de Vaga': labelTipoVaga(vaga.tipo_vaga),
           'Nível': vaga.nivel_vaga.charAt(0).toUpperCase() + vaga.nivel_vaga.slice(1),
           'Área Solicitante': vaga.area_nome || '',
           'Responsável pela Área': vaga.area_responsavel || '',
@@ -56,7 +57,7 @@ export const exportService = {
           'SLA Geral': traduzirStatus(vaga.status_geral_sla),
           'Dias Úteis Totais': vaga.dias_uteis_totais,
           'SLA 1: Aprovação (Limite 15d)': formatarEtapaExcel('aprovacao'),
-          'SLA 2: Abertura (Limite 3d)': vaga.tipo_vaga === 'interna' ? 'N/A (Interna)' : formatarEtapaExcel('abertura_consultoria'),
+          'SLA 2: Abertura (Limite 3d)': !usaConsultoria(vaga) ? `N/A (${labelTipoVaga(vaga.tipo_vaga)})` : formatarEtapaExcel('abertura_consultoria'),
           'SLA 3: Envio Candidatos (Varia Nível)': formatarEtapaExcel('envio_candidatos'),
           'SLA 4: Entrevista (Limite 15d)': formatarEtapaExcel('entrevista'),
           'SLA 5: Fechamento (Limite 7d)': formatarEtapaExcel('fechamento'),

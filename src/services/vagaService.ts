@@ -194,6 +194,28 @@ export const vagaService = {
     userId: string
   ): Promise<IVaga> {
     try {
+      // 0. Enviar apenas colunas reais da tabela. O formulário de edição recebe a vaga
+      //    completa (com campos calculados como area_nome, etapas_sla, status etc.),
+      //    e o Supabase rejeita (400) qualquer coluna que não exista.
+      const COLUNAS_EDITAVEIS = [
+        'codigo_vaga', 'nome_vaga', 'tipo_vaga', 'nivel_vaga', 'area_id', 'gestor_solicitante',
+        'consultoria_id', 'custo_processo', 'data_solicitacao', 'data_aprovacao',
+        'data_abertura_consultoria', 'data_envio_candidatos', 'data_entrevista',
+        'data_fechamento', 'data_inicio_colaborador', 'nome_colaborador_substituido',
+        'motivo_substituicao', 'nome_candidato_aprovado', 'tipo_contratacao',
+        'data_aprovacao_candidato', 'data_inicio_candidato',
+      ] as const;
+      const payload: Record<string, unknown> = {};
+      const origem = dadosNovos as Record<string, unknown>;
+      COLUNAS_EDITAVEIS.forEach((col) => {
+        if (col in origem) payload[col] = origem[col] === '' ? null : origem[col];
+      });
+      // Campos obrigatórios não podem virar null
+      ['codigo_vaga', 'nome_vaga', 'area_id', 'gestor_solicitante', 'data_solicitacao'].forEach((col) => {
+        if (payload[col] === null) delete payload[col];
+      });
+      dadosNovos = payload as typeof dadosNovos;
+
       // 1. Atualizar a vaga no banco
       const { data: updated, error } = await supabase
         .from('vagas')

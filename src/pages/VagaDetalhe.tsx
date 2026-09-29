@@ -1,3 +1,4 @@
+import { labelTipoVaga, usaConsultoria } from '@/utils/tipoVaga';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, Clock, Calendar, Building2, User, Briefcase, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
@@ -143,7 +144,7 @@ const VagaDetalhe: React.FC = () => {
         {[
           { icon: <Building2 size={16} />, label: 'Área', value: vagaAtual.area_nome ?? '—' },
           { icon: <User size={16} />, label: 'Gestor', value: vagaAtual.gestor_solicitante },
-          { icon: <Briefcase size={16} />, label: 'Tipo / Nível', value: `${vagaAtual.tipo_vaga} / ${vagaAtual.nivel_vaga}` },
+          { icon: <Briefcase size={16} />, label: 'Tipo / Nível', value: `${labelTipoVaga(vagaAtual.tipo_vaga)} / ${vagaAtual.nivel_vaga}` },
           { icon: <DollarSign size={16} />, label: 'Custo', value: formatCurrency(vagaAtual.custo_processo) },
         ].map(({ icon, label, value }) => (
           <div key={label} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
@@ -171,7 +172,7 @@ const VagaDetalhe: React.FC = () => {
             { label: 'Entrevista', date: vagaAtual.data_entrevista },
             { label: 'Fechamento', date: vagaAtual.data_fechamento },
             { label: 'Início Colaborador', date: vagaAtual.data_inicio_colaborador },
-          ].filter(({ label }) => !(vagaAtual.tipo_vaga === 'interna' && label === 'Abertura Consultoria'))
+          ].filter(({ label }) => !(!usaConsultoria(vagaAtual) && label === 'Abertura Consultoria'))
             .map(({ label, date }) => (
               <div key={label}>
                 <p className="text-xs text-gray-400 mb-0.5">{label}</p>
@@ -189,7 +190,7 @@ const VagaDetalhe: React.FC = () => {
           <Clock size={14} />
           Progresso do Processo
         </h2>
-        <VagaTimeline etapas={etapasArray} tipoVaga={vagaAtual.tipo_vaga} />
+        <VagaTimeline etapas={etapasArray} tipoVaga={vagaAtual.tipo_vaga} ocultarConsultoria={!usaConsultoria(vagaAtual)} />
       </div>
 
       {/* Tabela SLA */}

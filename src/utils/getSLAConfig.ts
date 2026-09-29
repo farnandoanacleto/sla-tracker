@@ -1,3 +1,4 @@
+import { usaConsultoria } from '@/utils/tipoVaga';
 import { addDays, isWeekend, isSameDay, format, parseISO, startOfDay } from 'date-fns';
 import { IVaga, IVagaComSla, ISlaEtapaStatus, TEtapaVaga, TSlaStatus } from '@/types';
 import { calcularDiasUteis } from './calcularDiasUteis';
@@ -101,8 +102,8 @@ export function processarSlaVaga(
         break;
 
       case 'abertura_consultoria':
-        if (vaga.tipo_vaga === 'interna') {
-          // Vagas internas não possuem esta etapa
+        if (!usaConsultoria(vaga)) {
+          // Vagas internas (e híbridas sem consultoria) não possuem esta etapa
           status = 'no_prazo';
           diasUteisRealizados = 0;
           slaPrevisto = 0;
@@ -114,9 +115,10 @@ export function processarSlaVaga(
 
       case 'envio_candidatos':
         // Se for vaga interna, inicia na data_aprovacao. Se for externa, na data_abertura_consultoria.
-        dataInicio = vaga.tipo_vaga === 'interna' 
-          ? vaga.data_aprovacao 
-          : vaga.data_abertura_consultoria;
+        // Híbrida: usa a abertura de consultoria se houver; senão, a aprovação.
+        dataInicio = usaConsultoria(vaga)
+          ? vaga.data_abertura_consultoria
+          : vaga.data_aprovacao;
         dataFim = vaga.data_envio_candidatos;
         break;
 

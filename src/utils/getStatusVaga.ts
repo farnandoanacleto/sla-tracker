@@ -55,7 +55,7 @@ export function getStatusVaga(vaga: Partial<IVaga>): IStatusInfo {
     };
   }
 
-  if (vaga.tipo_vaga === 'externa' && vaga.data_abertura_consultoria) {
+  if (vaga.tipo_vaga !== 'interna' && vaga.data_abertura_consultoria) {
     return {
       status: 'em_consultoria',
       label: 'Em Consultoria',

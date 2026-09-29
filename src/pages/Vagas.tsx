@@ -1,3 +1,4 @@
+import { labelTipoVaga } from '@/utils/tipoVaga';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, X, ExternalLink, Upload, Trash2 } from 'lucide-react';
@@ -208,6 +209,7 @@ const Vagas: React.FC = () => {
                 { value: 'todas', label: 'Todos os tipos' },
                 { value: 'interna', label: 'Interna' },
                 { value: 'externa', label: 'Externa' },
+                { value: 'hibrida', label: 'Híbrida' },
               ]}
             />
             <Select
@@ -353,7 +355,7 @@ const Vagas: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="flex flex-col gap-1">
-                          <span className="capitalize text-gray-600 text-xs">{vaga.tipo_vaga}</span>
+                          <span className="text-gray-600 text-xs">{labelTipoVaga(vaga.tipo_vaga)}</span>
                           <span className="capitalize text-gray-400 text-xs">{vaga.nivel_vaga}</span>
                         </div>
                       </td>

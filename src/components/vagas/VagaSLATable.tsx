@@ -1,3 +1,4 @@
+import { usaConsultoria } from '@/utils/tipoVaga';
 import React from 'react';
 import { CheckCircle, Clock, AlertCircle, XCircle, Circle } from 'lucide-react';
 import { IVagaComSla, ISlaEtapaStatus, TSlaStatus, TEtapaVaga } from '@/types';
@@ -41,7 +42,7 @@ const etapasOrdem: TEtapaVaga[] = [
  */
 const VagaSLATable: React.FC<VagaSLATableProps> = ({ vaga }) => {
   const etapasParaExibir = etapasOrdem.filter((etapa) => {
-    if (etapa === 'abertura_consultoria' && vaga.tipo_vaga === 'interna') return false;
+    if (etapa === 'abertura_consultoria' && !usaConsultoria(vaga)) return false;
     return true;
   });
 

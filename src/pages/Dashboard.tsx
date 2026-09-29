@@ -1,3 +1,4 @@
+import { TIPO_VAGA_LABELS } from '@/utils/tipoVaga';
 import React, { useMemo, useState } from 'react';
 import {
   CheckCircle, AlertTriangle, Clock, TrendingUp, Activity,
@@ -151,7 +152,7 @@ const Dashboard: React.FC = () => {
   const dadosConsultorias = useMemo(() => {
     const byId: Record<string, { nome: string; vagas: IVagaComSla[] }> = {};
     vagas
-      .filter((v) => v.tipo_vaga === 'externa')
+      .filter((v) => v.tipo_vaga !== 'interna' && !!v.consultoria_id)
       .forEach((v) => {
         const key = v.consultoria_id ?? 'sem';
         if (!byId[key]) byId[key] = { nome: v.consultoria_nome ?? 'Sem consultoria', vagas: [] };
@@ -190,7 +191,7 @@ const Dashboard: React.FC = () => {
 
   // ── Painel Comparativos ──────────────────────────────────────────────────
   const dadosTipos = useMemo(() => {
-    return (['interna', 'externa'] as const).map((tipo) => {
+    return (['interna', 'externa', 'hibrida'] as const).map((tipo) => {
       const vList = vagas.filter((v) => v.tipo_vaga === tipo);
       const concluidas = vList.filter((v) => !!v.data_fechamento);
 
@@ -205,7 +206,7 @@ const Dashboard: React.FC = () => {
       );
 
       return {
-        tipo: tipo === 'interna' ? 'Interna' : 'Externa',
+        tipo: TIPO_VAGA_LABELS[tipo],
         mediaDias:
           concluidas.length > 0
             ? Math.round(concluidas.reduce((s, v) => s + v.dias_uteis_totais, 0) / concluidas.length)
@@ -229,13 +230,15 @@ const Dashboard: React.FC = () => {
       .map((nivel) => {
         const int = vagas.filter((v) => v.nivel_vaga === nivel && v.tipo_vaga === 'interna' && v.data_fechamento);
         const ext = vagas.filter((v) => v.nivel_vaga === nivel && v.tipo_vaga === 'externa' && v.data_fechamento);
+        const hib = vagas.filter((v) => v.nivel_vaga === nivel && v.tipo_vaga === 'hibrida' && v.data_fechamento);
         return {
           nivel: NIVEL_LABELS[nivel],
           interna: int.length > 0 ? Math.round(int.reduce((s, v) => s + v.dias_uteis_totais, 0) / int.length) : 0,
           externa: ext.length > 0 ? Math.round(ext.reduce((s, v) => s + v.dias_uteis_totais, 0) / ext.length) : 0,
+          hibrida: hib.length > 0 ? Math.round(hib.reduce((s, v) => s + v.dias_uteis_totais, 0) / hib.length) : 0,
         };
       })
-      .filter((d) => d.interna > 0 || d.externa > 0);
+      .filter((d) => d.interna > 0 || d.externa > 0 || d.hibrida > 0);
   }, [vagas]);
 
   // Vagas com maior atraso
@@ -299,6 +302,7 @@ const Dashboard: React.FC = () => {
                 { value: 'todas', label: 'Todos os tipos' },
                 { value: 'interna', label: 'Interna' },
                 { value: 'externa', label: 'Externa' },
+                { value: 'hibrida', label: 'Híbrida' },
               ]}
               className="w-40"
             />
@@ -417,7 +421,7 @@ const Dashboard: React.FC = () => {
 
       {/* ── Painel Consultorias ───────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <SectionTitle icon={<Building2 size={16} />} title="Desempenho por Consultoria (vagas externas)" />
+        <SectionTitle icon={<Building2 size={16} />} title="Desempenho por Consultoria (vagas externas e híbridas)" />
         {loading ? (
           <SkeletonCard />
         ) : dadosConsultorias.length === 0 ? (
@@ -479,7 +483,7 @@ const Dashboard: React.FC = () => {
 
       {/* ── Painel Comparativos ───────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <SectionTitle icon={<Layers size={16} />} title="Comparativos: Interna vs Externa" />
+        <SectionTitle icon={<Layers size={16} />} title="Comparativos: Interna, Externa e Híbrida" />
         {loading ? (
           <SkeletonCard />
         ) : (
@@ -507,7 +511,7 @@ const Dashboard: React.FC = () => {
 
             {/* Por nível de vaga */}
             <div>
-              <p className="text-xs text-gray-500 mb-3 font-medium">Dias médios por nível (Interna vs Externa)</p>
+              <p className="text-xs text-gray-500 mb-3 font-medium">Dias médios por nível (Interna, Externa e Híbrida)</p>
               {dadosPorNivel.length === 0 ? (
                 <EmptyChart />
               ) : (
@@ -523,6 +527,7 @@ const Dashboard: React.FC = () => {
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="interna" fill="#1A56A0" radius={[4, 4, 0, 0]} name="Interna" />
                     <Bar dataKey="externa" fill="#F59E0B" radius={[4, 4, 0, 0]} name="Externa" />
+                    <Bar dataKey="hibrida" fill="#8B5CF6" radius={[4, 4, 0, 0]} name="Híbrida" />
                   </BarChart>
                 </ResponsiveContainer>
               )}

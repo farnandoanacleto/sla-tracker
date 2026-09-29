@@ -72,6 +72,9 @@ const NIVEL_MAP: Record<string, TNivelVaga> = {
 const TIPO_MAP: Record<string, TTipoVaga> = {
   interna: 'interna',
   externa: 'externa',
+  hibrida: 'hibrida',
+  hibrido: 'hibrida',
+  mista: 'hibrida',
 };
 
 const normalizeStr = (s: string): string =>

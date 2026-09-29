@@ -1,3 +1,4 @@
+import { labelTipoVaga } from '@/utils/tipoVaga';
 import React, { useMemo, useState } from 'react';
 import { Download, Search, Filter, X } from 'lucide-react';
 import { useVagas } from '@/hooks/useVagas';
@@ -82,7 +83,7 @@ const Relatorios: React.FC = () => {
         const row: Record<string, string | number> = {
           'Código': v.codigo_vaga,
           'Nome da Vaga': v.nome_vaga,
-          'Tipo': v.tipo_vaga,
+          'Tipo': labelTipoVaga(v.tipo_vaga),
           'Nível': v.nivel_vaga,
           'Área': v.area_nome ?? '',
           'Gestor': v.gestor_solicitante,
@@ -168,6 +169,7 @@ const Relatorios: React.FC = () => {
                 { value: 'todas', label: 'Todos' },
                 { value: 'interna', label: 'Interna' },
                 { value: 'externa', label: 'Externa' },
+                { value: 'hibrida', label: 'Híbrida' },
               ]}
             />
             <Select
@@ -289,7 +291,7 @@ const Relatorios: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-xs">{v.area_nome ?? '—'}</td>
                       <td className="px-4 py-3">
-                        <p className="text-gray-600 text-xs capitalize">{v.tipo_vaga}</p>
+                        <p className="text-gray-600 text-xs">{labelTipoVaga(v.tipo_vaga)}</p>
                         <p className="text-gray-400 text-xs capitalize">{v.nivel_vaga}</p>
                       </td>
                       <td className="px-4 py-3 text-center text-xs">{renderDu('aprovacao')}</td>

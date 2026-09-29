@@ -1,12 +1,13 @@
 import React from 'react';
 import { CheckCircle, Clock, AlertCircle, XCircle, Circle } from 'lucide-react';
-import { ISlaEtapaStatus, TSlaStatus } from '@/types';
+import { ISlaEtapaStatus, TSlaStatus, TTipoVaga } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface VagaTimelineProps {
   etapas: ISlaEtapaStatus[];
-  tipoVaga: 'interna' | 'externa';
+  tipoVaga: TTipoVaga;
+  ocultarConsultoria?: boolean;
 }
 
 const statusConfig: Record<
@@ -63,10 +64,10 @@ const formatDate = (date: string | null) => {
  * Timeline horizontal representando as 5 etapas do processo seletivo.
  * Exibe status visual, dias úteis e datas de cada etapa.
  */
-const VagaTimeline: React.FC<VagaTimelineProps> = ({ etapas, tipoVaga }) => {
+const VagaTimeline: React.FC<VagaTimelineProps> = ({ etapas, tipoVaga, ocultarConsultoria }) => {
   // Filtrar abertura_consultoria para vagas internas
   const etapasFiltradas = etapas.filter(
-    (e) => !(tipoVaga === 'interna' && e.etapa === 'abertura_consultoria')
+    (e) => !((ocultarConsultoria ?? tipoVaga === 'interna') && e.etapa === 'abertura_consultoria')
   );
 
   return (
