@@ -151,6 +151,8 @@ const VagaForm: React.FC<VagaFormProps> = ({
     ];
 
     datas.forEach(({ campo, label, anterior }) => {
+      // Vaga interna não tem etapa de consultoria (campo oculto e descartado ao salvar)
+      if (campo === 'data_abertura_consultoria' && form.tipo_vaga === 'interna') return;
       const valor = form[campo] as string | null;
       if (valor && anterior) {
         const valorAnterior = form[anterior] as string | null;
@@ -347,6 +349,18 @@ const VagaForm: React.FC<VagaFormProps> = ({
           />
         </div>
       </div>
+
+      {/* Resumo de erros (visível mesmo se o campo com erro estiver fora da tela) */}
+      {Object.keys(errors).length > 0 && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="font-medium mb-1">Não foi possível salvar. Corrija os itens abaixo:</p>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {Object.values(errors).map((msg) => (
+              <li key={msg}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Ações */}
       <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
