@@ -1,3 +1,4 @@
+import { filtrarPorSituacao, situacaoVaga } from '@/utils/situacaoVaga';
 import { labelTipoVaga } from '@/utils/tipoVaga';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -52,8 +53,12 @@ const Vagas: React.FC = () => {
   const [paraExcluir, setParaExcluir] = useState<IVagaComSla[]>([]);
   const [excluindo, setExcluindo] = useState(false);
 
-  const totalPages = Math.ceil(vagas.length / ITEMS_PER_PAGE);
-  const vagasPaginadas = vagas.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  // Situação (em aberto x fechada) é filtrada aqui para permitir mostrar a contagem de cada aba
+  const vagasVisiveis = filtrarPorSituacao(vagas, filtros.situacao);
+  const qtdAbertas = vagas.filter((v) => situacaoVaga(v) === 'aberta').length;
+
+  const totalPages = Math.ceil(vagasVisiveis.length / ITEMS_PER_PAGE);
+  const vagasPaginadas = vagasVisiveis.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const handleCriarVaga = async (data: Omit<IVaga, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     setSaving(true);
@@ -95,7 +100,7 @@ const Vagas: React.FC = () => {
   };
 
   const abrirExclusaoSelecionadas = () => {
-    setParaExcluir(vagas.filter((v) => selecionadas.has(v.id)));
+    setParaExcluir(vagasVisiveis.filter((v) => selecionadas.has(v.id)));
   };
 
   const handleConfirmarExclusao = async () => {
@@ -138,6 +143,7 @@ const Vagas: React.FC = () => {
     filtros.area_id !== 'todas' ||
     filtros.consultoria_id !== 'todas' ||
     filtros.status_sla !== 'todos' ||
+    filtros.situacao !== 'todas' ||
     filtros.data_inicio ||
     filtros.data_fim;
 
@@ -148,7 +154,7 @@ const Vagas: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vagas</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {loading ? '...' : `${vagas.length} vaga${vagas.length !== 1 ? 's' : ''} encontrada${vagas.length !== 1 ? 's' : ''}`}
+            {loading ? '...' : `${vagasVisiveis.length} vaga${vagasVisiveis.length !== 1 ? 's' : ''} encontrada${vagasVisiveis.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -172,6 +178,35 @@ const Vagas: React.FC = () => {
             Nova Vaga
           </Button>
         </div>
+      </div>
+
+      {/* Situação: em aberto x fechadas */}
+      <div className="inline-flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm" role="tablist" aria-label="Situação das vagas">
+        {([
+          { value: 'todas', label: 'Todas', qtd: vagas.length },
+          { value: 'aberta', label: 'Em aberto', qtd: qtdAbertas },
+          { value: 'fechada', label: 'Fechadas', qtd: vagas.length - qtdAbertas },
+        ] as const).map((op) => {
+          const ativo = filtros.situacao === op.value;
+          return (
+            <button
+              key={op.value}
+              type="button"
+              role="tab"
+              aria-selected={ativo}
+              onClick={() => { atualizarFiltros({ situacao: op.value }); setPage(1); setSelecionadas(new Set()); }}
+              className={[
+                'px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                ativo ? 'bg-[#1A56A0] text-white' : 'text-gray-600 hover:bg-gray-100',
+              ].join(' ')}
+            >
+              {op.label}
+              <span className={['ml-2 text-xs', ativo ? 'text-blue-100' : 'text-gray-400'].join(' ')}>
+                {loading ? '…' : op.qtd}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Barra de busca rápida */}
@@ -306,6 +341,7 @@ const Vagas: React.FC = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Área</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Tipo / Nível</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Solicitação</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Situação</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status SLA</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
@@ -313,11 +349,11 @@ const Vagas: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <SkeletonTableRow key={i} cols={8} />
+                  <SkeletonTableRow key={i} cols={9} />
                 ))
               ) : vagasPaginadas.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-2">
                       <Search size={32} className="text-gray-300" />
                       <p className="font-medium">Nenhuma vaga encontrada</p>
@@ -362,6 +398,16 @@ const Vagas: React.FC = () => {
                       <td className="px-4 py-3 text-gray-500 text-xs hidden lg:table-cell">
                         {formatDate(vaga.data_solicitacao)}
                       </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {situacaoVaga(vaga) === 'aberta' ? (
+                          <Badge variant="azul">Em aberto</Badge>
+                        ) : (
+                          <span className="flex flex-col">
+                            <Badge variant="cinza">Fechada</Badge>
+                            <span className="text-[11px] text-gray-400 mt-0.5">{formatDate(vaga.data_fechamento)}</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge variant={sla.variant}>{sla.label}</Badge>
                       </td>
@@ -396,7 +442,7 @@ const Vagas: React.FC = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
             <p className="text-xs text-gray-500">
-              Exibindo {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, vagas.length)} de {vagas.length}
+              Exibindo {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, vagasVisiveis.length)} de {vagasVisiveis.length}
             </p>
             <div className="flex items-center gap-1">
               <Button

@@ -1,3 +1,4 @@
+import { filtrarPorSituacao, situacaoVaga, SITUACAO_LABELS } from '@/utils/situacaoVaga';
 import { labelTipoVaga } from '@/utils/tipoVaga';
 import React, { useMemo, useState } from 'react';
 import { Download, Search, Filter, X } from 'lucide-react';
@@ -48,15 +49,16 @@ const Relatorios: React.FC = () => {
   const [page, setPage] = useState(1);
 
   const vagasFiltradas = useMemo(() => {
-    if (!busca.trim()) return vagas;
+    const base = filtrarPorSituacao(vagas, filtros.situacao);
+    if (!busca.trim()) return base;
     const q = busca.toLowerCase();
-    return vagas.filter(
+    return base.filter(
       (v) =>
         v.codigo_vaga.toLowerCase().includes(q) ||
         v.nome_vaga.toLowerCase().includes(q) ||
         v.gestor_solicitante.toLowerCase().includes(q),
     );
-  }, [vagas, busca]);
+  }, [vagas, busca, filtros.situacao]);
 
   const totalPages = Math.ceil(vagasFiltradas.length / ITEMS_PER_PAGE);
   const vagasPaginadas = vagasFiltradas.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
@@ -71,6 +73,7 @@ const Relatorios: React.FC = () => {
     filtros.nivel_vaga !== 'todos' ||
     filtros.area_id !== 'todas' ||
     filtros.status_sla !== 'todos' ||
+    filtros.situacao !== 'todas' ||
     filtros.data_inicio ||
     filtros.data_fim;
 
@@ -96,6 +99,7 @@ const Relatorios: React.FC = () => {
           'Data Entrevista': formatDate(v.data_entrevista),
           'Data Fechamento': formatDate(v.data_fechamento),
           'Data Início Colaborador': formatDate(v.data_inicio_colaborador),
+          'Situação': SITUACAO_LABELS[situacaoVaga(v)],
           'Status Geral SLA': SLA_BADGE[v.status_geral_sla]?.label ?? v.status_geral_sla,
           'Total Dias Úteis': v.dias_uteis_totais,
         };
@@ -159,7 +163,7 @@ const Relatorios: React.FC = () => {
       {/* Filtros */}
       {showFilters && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Select
               label="Tipo"
               id="rel-tipo"
@@ -198,6 +202,17 @@ const Relatorios: React.FC = () => {
                 { value: 'em_andamento', label: 'Em andamento' },
                 { value: 'atrasada', label: 'Atrasada' },
                 { value: 'estourada', label: 'SLA estourado' },
+              ]}
+            />
+            <Select
+              label="Situação"
+              id="rel-situacao"
+              value={filtros.situacao}
+              onChange={(e) => { atualizarFiltros({ situacao: e.target.value as typeof filtros.situacao }); setPage(1); }}
+              options={[
+                { value: 'todas', label: 'Todas' },
+                { value: 'aberta', label: 'Em aberto' },
+                { value: 'fechada', label: 'Fechadas' },
               ]}
             />
             <Select
@@ -255,15 +270,16 @@ const Relatorios: React.FC = () => {
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Entrevista (du)</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fechamento (du)</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total (du)</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Situação</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                Array.from({ length: 10 }).map((_, i) => <SkeletonTableRow key={i} cols={9} />)
+                Array.from({ length: 10 }).map((_, i) => <SkeletonTableRow key={i} cols={10} />)
               ) : vagasPaginadas.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
                     <p className="font-medium">Nenhum registro encontrado</p>
                   </td>
                 </tr>
@@ -300,6 +316,11 @@ const Relatorios: React.FC = () => {
                       <td className="px-4 py-3 text-center text-xs">{renderDu('fechamento')}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="font-semibold text-gray-800 text-xs">{v.dias_uteis_totais} du</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={situacaoVaga(v) === 'aberta' ? 'azul' : 'cinza'}>
+                          {SITUACAO_LABELS[situacaoVaga(v)]}
+                        </Badge>
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={sla.variant}>{sla.label}</Badge>
