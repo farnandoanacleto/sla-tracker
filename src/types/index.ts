@@ -185,6 +185,7 @@ export interface IFiltrosVagas {
   area_id: string | 'todas';
   consultoria_id: string | 'todas';
   status_sla: TSlaStatus | 'todos';
+  situacao: 'aberta' | 'fechada' | 'todas'; // aberta = sem data de fechamento
   data_inicio: string | null; // data_solicitacao inicial
   data_fim: string | null; // data_solicitacao final
 }
