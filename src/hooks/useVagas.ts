@@ -10,6 +10,7 @@ const filtrosIniciais: IFiltrosVagas = {
   area_id: 'todas',
   consultoria_id: 'todas',
   status_sla: 'todos',
+  situacao: 'todas',
   data_inicio: null,
   data_fim: null
 };
